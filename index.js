@@ -31,7 +31,7 @@ app.use("/api/tools", toolRoutes);
 app.get("/", (req,res) => res.send("OraDesign Server is running!"));
 
 // توصيل DB وتشغيل السيرفر
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT; // مش ندي قيمة افتراضية
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB connected');
