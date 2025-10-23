@@ -6,11 +6,7 @@ const { v2: cloudinary } = require('cloudinary');
 
 dotenv.config();
 
-const orderRoutes = require("./routes/orderRoutes.js");
-const productRoutes = require("./routes/productRoutes.js");
-const toolRoutes = require("./routes/toolRoutes.js")
-
-const app = express();
+const app = express(); // لازم الأول تعرف app
 
 // إعداد Cloudinary
 cloudinary.config({
@@ -18,7 +14,6 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
 
 // ميدل وير أساسي
 app.use(cors({
@@ -30,9 +25,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
+const orderRoutes = require("./routes/orderRoutes.js");
+const productRoutes = require("./routes/productRoutes.js");
+const toolRoutes = require("./routes/toolRoutes.js");
+
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/tools", toolRoutes);
+
+// Route رئيسية لتأكيد التشغيل
+app.get("/", (req, res) => {
+  res.send("OraDesign Server is running!");
+});
 
 // توصيل قاعدة البيانات وتشغيل السيرفر
 const PORT = process.env.PORT || 5000;
