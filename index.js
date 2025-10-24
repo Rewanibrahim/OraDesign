@@ -1,49 +1,45 @@
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const { v2: cloudinary } = require('cloudinary');
-const path = require('path');
+import express from "express";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+
+import productRoutes from "./routes/productRoutes.js";
+import toolRoutes from "./routes/toolRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 
 dotenv.config();
 const app = express();
 
-// إعداد Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-// Middleware
-app.use(cors({ origin: "*", methods: ["GET","POST","PATCH","PUT","DELETE"], allowedHeaders:["Content-Type"] }));
+// ======== Config ========
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files
-app.use(express.static("public"));
+// ======== Setup paths ========
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Routes
-const orderRoutes = require("./routes/orderRoutes.js");
-const productRoutes = require("./routes/productRoutes.js");
-const toolRoutes = require("./routes/toolRoutes.js");
+// ======== Static files ========
+app.use(express.static(path.join(__dirname, "public")));
 
+// ======== Routes ========
 app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
 app.use("/api/tools", toolRoutes);
+app.use("/api/orders", orderRoutes);
 
-// Route رئيسية تفتح صفحة admin.html
+// ======== Serve HTML (Admin Page) ========
 app.get("/", (req, res) => {
-  app.use(express.static(path.join(__dirname, "public")));
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// توصيل DB وتشغيل السيرفر
-const PORT = process.env.PORT || 5000;
-mongoose.connect(process.env.MONGO_URI)
+// ======== Connect MongoDB ========
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log('✅ MongoDB connected');
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    console.log("✅ MongoDB connected");
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => console.log(`🚀 OraDesign Server running on port ${PORT}`));
   })
-  .catch(err => console.log('❌ MongoDB connection failed:', err.message));
-
-module.exports = { cloudinary };
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
