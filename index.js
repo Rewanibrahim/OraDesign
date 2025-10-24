@@ -3,9 +3,10 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const { v2: cloudinary } = require('cloudinary');
+const path = require('path');
 
 dotenv.config();
-const app = express(); // لازم أول حاجة تعرفي app
+const app = express();
 
 // إعداد Cloudinary
 cloudinary.config({
@@ -19,20 +20,25 @@ app.use(cors({ origin: "*", methods: ["GET","POST","PATCH","PUT","DELETE"], allo
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files
+app.use(express.static("public"));
+
 // Routes
 const orderRoutes = require("./routes/orderRoutes.js");
 const productRoutes = require("./routes/productRoutes.js");
 const toolRoutes = require("./routes/toolRoutes.js");
+
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/tools", toolRoutes);
 
-// Route رئيسية
-app.get("/", (req,res) => res.send("OraDesign Server is running!"));
+// Route رئيسية تفتح صفحة admin.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
 
 // توصيل DB وتشغيل السيرفر
 const PORT = process.env.PORT || 5000;
-
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB connected');
