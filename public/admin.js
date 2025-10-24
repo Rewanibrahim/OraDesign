@@ -40,7 +40,7 @@ editOrderPopup.className = "popup";
 document.body.appendChild(editOrderPopup);
 
 // ======== رابط السيرفر ========
-const SERVER_URL = "http://127.0.0.1:5000";
+const SERVER_URL = "https://oradesign.onrender.com";
 
 // ======== تحميل البيانات من السيرفر ========
 async function fetchData() {
@@ -837,7 +837,7 @@ let tools = [];
 // ======== جلب الأوردرز من السيرفر ========
 async function fetchOrders() {
   try {
-    const res = await fetch("http://localhost:5000/api/orders");
+    const res = await fetch('${SERVER_URL}/api/orders');
     orders = await res.json();
     updateProfitDisplay();
   } catch (err) {
@@ -848,7 +848,7 @@ async function fetchOrders() {
 // ======== جلب الأدوات من السيرفر ========
 async function fetchTools() {
   try {
-    const res = await fetch("http://localhost:5000/api/tools");
+    const res = await fetch('${SERVER_URL}/api/tools');
     tools = await res.json();
     renderToolsTable();
     updateProfitDisplay();
@@ -898,7 +898,7 @@ function updateProfitDisplay() {
 // ======== بعد جلب الأوردرات من السيرفر ========
 async function fetchOrders() {
   try {
-    const res = await fetch("http://localhost:5000/api/orders");
+    const res = await fetch('${SERVER_URL}/api/orders');
     if (!res.ok) throw new Error("خطأ في جلب الأوردرات");
     orders = await res.json();
     updateProfitDisplay(); // ✅ تحديث مباشرة بعد التحميل
@@ -910,7 +910,7 @@ async function fetchOrders() {
 // ======== بعد جلب الأدوات من السيرفر ========
 async function fetchTools() {
   try {
-    const res = await fetch("http://localhost:5000/api/tools");
+    const res = await fetch('${SERVER_URL}/api/tools');
     if (!res.ok) throw new Error("خطأ في جلب الأدوات");
     tools = await res.json();
     renderToolsTable();
