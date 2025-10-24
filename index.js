@@ -34,7 +34,7 @@ app.use("/api/tools", toolRoutes);
 
 // Route رئيسية تفتح صفحة admin.html
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "admin.html"));
+  app.use(express.static(path.join(__dirname, "public")));
 });
 
 // توصيل DB وتشغيل السيرفر
