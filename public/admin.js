@@ -45,12 +45,14 @@ const SERVER_URL = "https://oradesign.onrender.com";
 // ======== تحميل البيانات من السيرفر ========
 async function fetchData() {
   try {
-    const [resProducts, resOrders] = await Promise.all([
+    const [resProducts, resOrders, resTools] = await Promise.all([
       fetch(`${SERVER_URL}/api/products`),
-      fetch(`${SERVER_URL}/api/orders`)
+      fetch(`${SERVER_URL}/api/orders`),
+      fetch(`${SERVER_URL}/api/tools`)
     ]);
     products = resProducts.ok ? await resProducts.json() : [];
     orders = resOrders.ok ? await resOrders.json() : [];
+    tools = resTools.ok ? await resTools.json() : [];
   } catch (err) {
     console.error("❌ Error fetching data:", err);
     alert("⚠️ لم يتم تحميل البيانات من السيرفر");
@@ -837,7 +839,7 @@ let tools = [];
 // ======== جلب الأوردرز من السيرفر ========
 async function fetchOrders() {
   try {
-    const res = await fetch('${SERVER_URL}/api/orders');
+    const res = await fetch(`${SERVER_URL}/api/orders`);
     orders = await res.json();
     updateProfitDisplay();
   } catch (err) {
@@ -848,7 +850,7 @@ async function fetchOrders() {
 // ======== جلب الأدوات من السيرفر ========
 async function fetchTools() {
   try {
-    const res = await fetch('${SERVER_URL}/api/tools');
+    const res = await fetch(`${SERVER_URL}/api/tools`);
     tools = await res.json();
     renderToolsTable();
     updateProfitDisplay();
@@ -898,7 +900,7 @@ function updateProfitDisplay() {
 // ======== بعد جلب الأوردرات من السيرفر ========
 async function fetchOrders() {
   try {
-    const res = await fetch('${SERVER_URL}/api/orders');
+    const res = await fetch(`${SERVER_URL}/api/orders`);
     if (!res.ok) throw new Error("خطأ في جلب الأوردرات");
     orders = await res.json();
     updateProfitDisplay(); // ✅ تحديث مباشرة بعد التحميل
@@ -910,7 +912,7 @@ async function fetchOrders() {
 // ======== بعد جلب الأدوات من السيرفر ========
 async function fetchTools() {
   try {
-    const res = await fetch('${SERVER_URL}/api/tools');
+    const res = await fetch(`${SERVER_URL}/api/tools`);
     if (!res.ok) throw new Error("خطأ في جلب الأدوات");
     tools = await res.json();
     renderToolsTable();
@@ -931,7 +933,7 @@ async function addTool() {
   }
 
   try {
-    const res = await fetch("${SERVER_URL}/api/tools", {
+    const res = await fetch(`${SERVER_URL}/api/tools`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, cost, quantity })
