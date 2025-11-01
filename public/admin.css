@@ -33,10 +33,10 @@ body {
 .navbar-buttons {
   display: flex;
   flex-direction: column; /* خلي الاتجاه عمودي بدل أفقي */
-  gap: 15px;              /* مسافة بين الأزرار */
+  gap: 12px;              /* مسافة بين الأزرار */
   position: absolute;
   left: 20px;
-  top: 60px;
+  top: 10px;
 }
 
 .navbar-buttons button {
@@ -598,4 +598,192 @@ td .view-btn { background-color: #ff9a27; }
   border: none;
   color: #333;
 }
+/* ===== Popup عام ===== */
+.popup {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(3px);
+}
 
+/* ===== محتوى الـ Popup ===== */
+.popup-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  width: 450px;
+  max-height: 85vh;
+  overflow-y: auto;
+  direction: rtl;
+  font-family: "Harmattan", sans-serif;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* ===== عنوان الـ Popup ===== */
+.popup-content h2 {
+  text-align: center;
+  color: #222;
+  margin-bottom: 15px;
+}
+
+/* ===== أزرار ===== */
+.popup-content .btn {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+  font-family: "Harmattan", sans-serif;
+}
+
+.popup-content .btn:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+/* ===== جدول الخسائر ===== */
+/* ===== Popup الخسائر (نفس تنسيق الأدوات) ===== */
+#lossesPopup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+#lossesPopup .popup-content {
+  background-color: #fff;
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 700px;
+  max-width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: popupFadeSlide 0.3s ease;
+}
+
+#lossesPopup h2 {
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 22px;
+  color: #333;
+}
+
+/* إدخالات الخسائر */
+#lossesPopup input[type="text"],
+#lossesPopup input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+/* الأزرار */
+#lossesPopup button {
+  background-color: #67bfba;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background-color 0.2s ease;
+}
+
+#lossesPopup button:hover {
+  background-color: #3a8f8b;
+}
+
+/* زر الإغلاق */
+#closeLossesBtn {
+  background-color: #e74c3c !important;
+  position: absolute;
+  top: 12px;
+  right: 15px;
+  font-size: 20px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+#closeLossesBtn:hover {
+  background-color: #b91c1c !important;
+}
+
+/* جدول الخسائر */
+#lossesTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#lossesTable th {
+  background-color: #ee2ea2;
+  color: white;
+  padding: 10px;
+}
+
+#lossesTable td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  text-align: center;
+}
+
+#lossesTable tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* إجمالي الخسائر */
+#lossesTotal {
+  color: #d9534f;
+  font-weight: bold;
+  font-size: 18px;
+  display: inline-block;
+  margin-top: 10px;
+}
+.navbar-summary {
+  width: 100%;
+  text-align: center;
+  background: #f9f9f9;
+  color: #333;
+  padding: 8px 0;
+  font-size: 17px;
+  font-weight: 500;
+  border-top: 1px solid #ddd;
+  margin-top: 5px;
+}
+
+.navbar-summary span {
+  margin: 0 5px;
+}
+
+.navbar-summary strong {
+  color: #0a7f1c;
+}
+
+.navbar-summary #finalProfitValue {
+  color: #c21807; /* لون مختلف للربح النهائي */
+  font-weight: bold;
+}

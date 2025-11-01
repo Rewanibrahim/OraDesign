@@ -1,6 +1,7 @@
 // ======== متغيرات عامة ========
 let products = [];
 let orders = [];
+let losses = [];
 let selectedProducts = [];
 let currentPage = 1;
 const ordersPerPage = 10;
@@ -40,19 +41,25 @@ editOrderPopup.className = "popup";
 document.body.appendChild(editOrderPopup);
 
 // ======== رابط السيرفر ========
-const SERVER_URL = "https://oradesign.onrender.com";
+const SERVER_URL =
+  window.location.hostname.includes("localhost")
+    ? "http://localhost:5000"
+    : "https://oradesign.onrender.com";
 
 // ======== تحميل البيانات من السيرفر ========
 async function fetchData() {
   try {
-    const [resProducts, resOrders, resTools] = await Promise.all([
-      fetch(`${SERVER_URL}/api/products`),
-      fetch(`${SERVER_URL}/api/orders`),
-      fetch(`${SERVER_URL}/api/tools`)
-    ]);
+    const [resProducts, resOrders, resTools, resLosses] = await Promise.all([
+  fetch(`${SERVER_URL}/api/products`),
+  fetch(`${SERVER_URL}/api/orders`),
+  fetch(`${SERVER_URL}/api/tools`),
+  fetch(`${SERVER_URL}/api/losses`)
+]);
+
     products = resProducts.ok ? await resProducts.json() : [];
     orders = resOrders.ok ? await resOrders.json() : [];
     tools = resTools.ok ? await resTools.json() : [];
+    losses = resLosses.ok ? await resLosses.json() : [];
   } catch (err) {
     console.error("❌ Error fetching data:", err);
     alert("⚠️ لم يتم تحميل البيانات من السيرفر");
@@ -960,3 +967,159 @@ function closeToolsPopup() { document.getElementById("toolsPopup").style.display
 // ======== عند تحميل الصفحة ========
 fetchOrders();
 fetchTools();
+
+
+// ======== فتح وغلق popup الخسائر ========
+const lossesPopup = document.getElementById("lossesPopup");
+const closeLossesBtn = document.getElementById("closeLossesBtn");
+const addLossBtn = document.getElementById("addLossBtn");
+
+// 🧭 تحديد رابط السيرفر حسب بيئة التشغيل
+
+
+// لما تضغطي على الزر في الـ navbar
+document.getElementById("lossesNavBtn").addEventListener("click", async () => {
+  lossesPopup.style.display = "flex";
+  await fetchLosses(); // استدعاء الداتا
+});
+
+// لما تضغطي على زر الإغلاق
+closeLossesBtn.addEventListener("click", () => {
+  lossesPopup.style.display = "none";
+});
+
+// ======== إضافة خسارة جديدة ========
+addLossBtn.addEventListener("click", async () => {
+  const name = document.getElementById("lossName").value.trim();
+  const amount = parseFloat(document.getElementById("lossPrice").value);
+
+  if (!name || isNaN(amount)) {
+    alert("من فضلك ادخل اسم وقيمة صحيحة للخسارة");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${SERVER_URL}/api/losses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, amount }),
+    });
+
+    if (!res.ok) throw new Error("Error adding loss");
+
+    alert("✅ تم إضافة الخسارة بنجاح");
+
+    document.getElementById("lossName").value = "";
+    document.getElementById("lossPrice").value = "";
+
+    await fetchLosses(); // تحدّث الجدول داخل الـ popup
+    updateNavbarTotals(); // تحدّث الملخص في الـ Navbar
+  } catch (err) {
+    console.error("❌ خطأ أثناء إضافة الخسارة:", err);
+    alert("❌ حدث خطأ أثناء إضافة الخسارة");
+  }
+});
+
+// ======== جلب كل الخسائر ========
+async function fetchLosses() {
+  try {
+    const res = await fetch(`${SERVER_URL}/api/losses`);
+    if (!res.ok) throw new Error("❌ السيرفر رجع خطأ أثناء تحميل الخسائر");
+
+    const losses = await res.json();
+    console.log("✅ البيانات الراجعة من السيرفر:", losses);
+
+    const tableBody = document.querySelector("#lossesTable tbody");
+    if (!tableBody) {
+      console.error("⚠️ مفيش عنصر tbody داخل #lossesTable");
+      return;
+    }
+
+    tableBody.innerHTML = "";
+
+    let totalLosses = 0;
+
+    if (Array.isArray(losses) && losses.length > 0) {
+      losses.forEach((loss) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${loss.name || "بدون اسم"}</td>
+          <td>${loss.amount ? loss.amount + " جنيه" : "0 جنيه"}</td>
+        `;
+        tableBody.appendChild(row);
+        totalLosses += Number(loss.amount) || 0;
+      });
+    } else {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td colspan="2" style="text-align:center;">لا توجد خسائر مسجلة</td>`;
+      tableBody.appendChild(row);
+    }
+
+    const totalEl = document.getElementById("lossesTotal");
+    if (totalEl) {
+      totalEl.textContent = totalLosses.toFixed(2);
+    } else {
+      console.error("⚠️ عنصر #lossesTotal مش موجود في الصفحة");
+    }
+
+    console.log("💰 إجمالي الخسائر:", totalLosses);
+  } catch (err) {
+    console.error("❌ خطأ أثناء تحميل الخسائر:", err);
+  }
+}
+
+// ======== تحديث الإجماليات في الـ Navbar ========
+async function updateNavbarTotals() {
+  try {
+    const [ordersRes, toolsRes, lossesRes] = await Promise.all([
+      fetch(`${SERVER_URL}/api/orders`),
+      fetch(`${SERVER_URL}/api/tools`),
+      fetch(`${SERVER_URL}/api/losses`)
+    ]);
+
+    // ✅ تأكدي إن كل Response ناجح
+    if (!ordersRes.ok || !toolsRes.ok || !lossesRes.ok) {
+      throw new Error("One of the API requests failed");
+    }
+
+    const orders = await ordersRes.json();
+    const tools = await toolsRes.json();
+    const losses = await lossesRes.json();
+
+    // 🧾 إجمالي الأرباح من الأوردرات
+    const ordersTotal = orders.reduce((sum, o) => sum + (o.profit || 0), 0);
+
+    // 🧰 تكلفة الأدوات
+    const toolsTotal = tools.reduce(
+      (sum, t) => sum + ((t.cost || 0) * (t.quantity || 1)),
+      0
+    );
+
+    // 💸 إجمالي الخسائر
+    const lossesTotal = losses.reduce((sum, l) => sum + (l.amount || 0), 0);
+
+    // 🧮 الربح النهائي
+    const finalProfit = ordersTotal - toolsTotal - lossesTotal;
+
+    // 💡 تحديث الـ Navbar
+    document.getElementById("ordersTotal").textContent = ordersTotal.toFixed(2);
+    document.getElementById("toolsTotal").textContent = toolsTotal.toFixed(2);
+    document.getElementById("lossesTotal").textContent = lossesTotal.toFixed(2);
+    document.getElementById("finalProfit").textContent = finalProfit.toFixed(2);
+
+    // 🧠 حفظهم في LocalStorage
+    localStorage.setItem("ordersTotal", ordersTotal);
+    localStorage.setItem("toolsTotal", toolsTotal);
+    localStorage.setItem("lossesTotal", lossesTotal);
+    localStorage.setItem("finalProfit", finalProfit);
+  } catch (err) {
+    console.error("حدث خطأ أثناء حساب الإجماليات:", err);
+  }
+}
+
+window.addEventListener("load", updateNavbarTotals);
+
+document.getElementById("addLossBtn")?.addEventListener("click", () => {
+  setTimeout(updateNavbarTotals, 1000);
+});
+

@@ -8,6 +8,9 @@ import { fileURLToPath } from "url";
 import productRoutes from "./routes/productRoutes.js";
 import toolRoutes from "./routes/toolRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import lossesRoutes from "./routes/lossRoutes.js";
+
+
 
 dotenv.config();
 const app = express();
@@ -28,6 +31,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/api/products", productRoutes);
 app.use("/api/tools", toolRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/losses", lossesRoutes);
 
 // ======== Serve HTML (Admin Page) ========
 app.get("/", (req, res) => {
