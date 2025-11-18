@@ -18,6 +18,15 @@ const orderSchema = new mongoose.Schema({
   address: { type: String, required: true },
   phone: { type: String, required: true },
   products: [productSchema],
+  paperType: {
+  type: String,
+  enum: ["كوشيه", "ستيكر", "none"], // لو مفيش طباعة
+  default: "none",
+},
+paperCount: { type: Number, default: 0 },
+paperPrice: { type: Number, default: 0 },
+paperTotal: { type: Number, default: 0 }, // (count * price)
+
   totalCost: { type: Number, default: 0 },
   sellingPrice: { type: Number, default: 0 },
   profit: { type: Number, default: 0 },

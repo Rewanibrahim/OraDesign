@@ -59,6 +59,21 @@
     <label>المشتريات</label>
     <button type="button" id="selectProductsBtn">اختيار المشتريات</button>
     <div id="productsList"></div>
+    <label>نوع الورق</label>
+<select id="paperType">
+  <option value="none">بدون طباعة</option>
+  <option value="coated">كوشيه</option>
+  <option value="sticker">استيكر</option>
+</select>
+
+<label>عدد الورق</label>
+<input type="number" id="paperCount" placeholder="عدد الورق">
+
+<label>سعر الورقة</label>
+<input type="number" id="paperPrice" placeholder="سعر الورقة">
+<!-- مثال: بعد اختيار المنتجات يظهر هذا input -->
+<label>تكلفة الورق للأوردر: <input type="number" id="orderPaperCost" value="0" min="0"></label>
+
 
     <label>إجمالي التكلفة</label>
     <input type="number" id="totalCost" step="0.01">

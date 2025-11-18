@@ -507,7 +507,6 @@ selectProductsBtn && selectProductsBtn.addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'product-card';
 
-    // اجعل اسم الحقل للمكونات هو price (موحد)
     let compHtml = '';
     if (p.components?.length) {
       compHtml = `
@@ -527,75 +526,106 @@ selectProductsBtn && selectProductsBtn.addEventListener('click', () => {
       <img src="${p.imageUrl || 'assets/images/placeholder.png'}" alt="${p.name}">
       <strong>${p.name}</strong>
       <label>الكمية: <input type="number" class="popup-qty" value="0" min="0"></label>
-      <span>سعر المنتج: <span class="product-total-price">${Number(p.sellingPrice || 0).toFixed(2)}</span> جنيه</span>
+      <span>السعر: <span class="unit-price">${Number(p.sellingPrice || 0).toFixed(2)}</span> جنيه</span>
       ${compHtml}
     `;
 
     popupProductsContainer.appendChild(div);
 
+    // عرض/إخفاء المكونات
     const btn = div.querySelector('.customize-btn');
     if (btn) {
       btn.addEventListener('click', () => {
         const comps = div.querySelector('.components');
         comps.style.display = comps.style.display === 'none' ? 'block' : 'none';
-
-        // تحديث السعر لو المكونات اتغيرت
         comps.querySelectorAll('.component-checkbox').forEach(chk => {
-          chk.addEventListener('change', () => {
-            const basePrice = Number(products[i].sellingPrice || 0);
-            const selectedComps = Array.from(comps.querySelectorAll('.component-checkbox:checked'))
-              .reduce((sum, c) => sum + Number(c.dataset.price || 0), 0);
-            const newTotal = basePrice + selectedComps;
-
-            div.querySelector('.product-total-price').textContent = newTotal.toFixed(2);
-          });
+          chk.addEventListener('change', updateTotals);
         });
       });
     }
+
+    // تحديث الإجماليات عند تغيير الكمية
+    div.querySelector('.popup-qty').addEventListener('input', updateTotals);
   });
 
   togglePopup(selectProductsPopup);
 });
 
-// ======== تأكيد اختيار المنتجات ========
+// ======== تأكيد اختيار المنتجات مع احتساب المكونات ========
 confirmSelectionBtn && confirmSelectionBtn.addEventListener('click', () => {
   selectedProducts = [];
   const productsList = document.getElementById('productsList');
   productsList.innerHTML = '';
 
   popupProductsContainer.querySelectorAll('.product-card').forEach((card, i) => {
-    const qty = Number(card.querySelector('.popup-qty').value);
+    const qty = Number(card.querySelector('.popup-qty').value || 0);
     if (qty > 0) {
       const selectedComps = Array.from(card.querySelectorAll('.component-checkbox:checked')).map(chk => ({
         name: chk.dataset.name,
         price: Number(chk.dataset.price)
       }));
 
-      // إذا المكونات الفارغة، خذ المكونات الأصلية من products[i]
-      const compsFinal = (selectedComps.length > 0) ? selectedComps : (products[i].components || []);
+      selectedProducts.push({
+        product: products[i],
+        qty,
+        components: selectedComps
+      });
 
-      selectedProducts.push({ product: products[i], qty, components: compsFinal });
+      const unitPrice = Number(products[i].sellingPrice || 0);
+      const totalPrice = unitPrice * qty; // بدون إضافة المكونات
 
-      const totalPrice = (Number(products[i].sellingPrice || 0) * qty).toFixed(2);
       const div = document.createElement('div');
-      div.textContent = `${products[i].name} - الكمية: ${qty} - السعر: ${totalPrice} جنيه`;
+      div.textContent = `${products[i].name} - الكمية: ${qty} - السعر الإجمالي: ${totalPrice.toFixed(2)} جنيه`;
       productsList.appendChild(div);
     }
   });
+
+  // اظهار input الورق
+  const orderPaperInput = document.getElementById("orderPaperCost");
+  if (orderPaperInput) {
+    orderPaperInput.value = "0";
+    orderPaperInput.style.display = "inline-block";
+  }
 
   updateTotals();
   togglePopup(selectProductsPopup, false);
 });
 
-// ======== حساب الأسعار الإجمالية ========
+// ======== تحديث إجمالي تكلفة الورق ========
+function updatePaperCost() {
+  const count = Number(document.getElementById("paperCount")?.value || 0);
+  const price = Number(document.getElementById("paperPrice")?.value || 0);
+  const totalPaperCost = count * price;
+
+  const orderPaperInput = document.getElementById("orderPaperCost");
+  if (orderPaperInput) orderPaperInput.value = totalPaperCost.toFixed(2);
+
+  updateTotals();
+}
+
+// ======== أحداث الورق ========
+document.getElementById("paperCount")?.addEventListener("input", updatePaperCost);
+document.getElementById("paperPrice")?.addEventListener("input", updatePaperCost);
+document.getElementById("paperType")?.addEventListener("change", updatePaperCost);
+
+// ======== حساب الإجماليات مع المكونات والورق ========
 function updateTotals() {
-  let totalCost = 0, sellingPrice = 0;
+  let totalCost = 0;
+  let sellingPrice = 0;
 
   selectedProducts.forEach(p => {
-    const compsCost = (p.components || []).reduce((sum, c) => sum + (Number(c.price) || 0), 0);
-    totalCost += compsCost * p.qty;
-    sellingPrice += Number(p.product.sellingPrice || 0) * p.qty;
+    const qty = p.qty;
+    const unitPrice = Number(p.product.sellingPrice || 0);
+    sellingPrice += unitPrice * qty;
+
+    // حساب تكلفة المكونات المضافة
+    const compsCost = (p.components || []).reduce((sum, c) => sum + Number(c.price || 0), 0);
+    totalCost += compsCost * qty;
   });
+
+  // إضافة تكلفة الورق
+  const orderPaperCost = Number(document.getElementById("orderPaperCost")?.value || 0);
+  totalCost += orderPaperCost;
 
   const profit = sellingPrice - totalCost;
 
