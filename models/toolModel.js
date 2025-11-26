@@ -1,9 +1,9 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const toolSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  cost: { type: Number, required: true },
-  quantity: { type: Number, default: 1 }
-});
+  quantity: { type: Number, default: 0 },
+  price: { type: Number, default: 0 }
+}, { timestamps: true });
 
-module.exports = mongoose.model("Tool", toolSchema);
+export default mongoose.model("Tool", toolSchema);

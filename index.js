@@ -7,12 +7,19 @@ import { fileURLToPath } from "url";
 
 import productRoutes from "./routes/productRoutes.js";
 import toolRoutes from "./routes/toolRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js";
+import testOrderRoute from "./routes/orderRoutes.js"; // المسار صح
 import lossesRoutes from "./routes/lossRoutes.js";
 
 
 
 dotenv.config();
+console.log("All env:", process.env);
+
+console.log("Cloudinary Key:", process.env.CLOUDINARY_API_KEY);
+console.log("Cloudinary Secret:", process.env.CLOUDINARY_API_SECRET);
+console.log("Cloudinary Cloud Name:", process.env.CLOUDINARY_CLOUD_NAME);
+
+
 const app = express();
 
 // ======== Config ========
@@ -30,7 +37,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // ======== Routes ========
 app.use("/api/products", productRoutes);
 app.use("/api/tools", toolRoutes);
-app.use("/api/orders", orderRoutes);
+app.use("/api/test-order", testOrderRoute);
 app.use("/api/losses", lossesRoutes);
 
 // ======== Serve HTML (Admin Page) ========

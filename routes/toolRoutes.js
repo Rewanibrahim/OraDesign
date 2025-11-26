@@ -1,6 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const Tool = require("../models/toolModel.js");
+import Tool from "../models/toolModel.js";
+
 
 // GET /api/tools → جلب كل الأدوات
 router.get("/", async (req, res) => {
@@ -26,4 +27,4 @@ router.post("/", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router; 

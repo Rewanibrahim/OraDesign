@@ -1,25 +1,27 @@
-const express = require("express");
-const router = express.Router();
-const Product = require("../models/productModel.js");
-const multer = require("multer");
-const cloudinary = require("cloudinary").v2;
-const stream = require("stream");
+import dotenv from "dotenv";
+dotenv.config(); // مهم جدًا يكون هنا الأول
+import express from "express";
+import Product from "../models/productModel.js";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+import stream from "stream";
 
-// إعداد Cloudinary
+const router = express.Router();
+
+// ======== إعداد Cloudinary ========
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// إعداد Multer لحفظ الصور مؤقتًا في الذاكرة
+// ======== إعداد Multer ========
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // ==== إضافة منتج (صورة واحدة) ====
 router.post("/", upload.single("imageUrl"), async (req, res) => {
   try {
-    console.log("📦 Received body:", req.body);
     const { name, sellingPrice, totalCost, profit, components } = req.body;
 
     if (!name || !sellingPrice) {
@@ -29,7 +31,6 @@ router.post("/", upload.single("imageUrl"), async (req, res) => {
     let imageUrl = "";
 
     if (req.file) {
-      // رفع الصورة على Cloudinary باستخدام stream
       const bufferStream = new stream.PassThrough();
       bufferStream.end(req.file.buffer);
 
@@ -47,7 +48,6 @@ router.post("/", upload.single("imageUrl"), async (req, res) => {
       imageUrl = uploadResult.secure_url;
     }
 
-    // حفظ المنتج في قاعدة البيانات
     const newProduct = new Product({
       name,
       sellingPrice: Number(sellingPrice),
@@ -118,4 +118,4 @@ router.put("/:id", upload.single("imageUrl"), async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

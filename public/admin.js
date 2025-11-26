@@ -32,6 +32,7 @@ const filterMonthInput = document.getElementById("filterMonth");
 // عناصر تعديل المنتج (popup edit)
 const editAddComponentBtn = document.getElementById("editAddComponentBtn");
 const cancelEditProductBtn = document.getElementById("cancelEditProductBtn");
+const cancelEditOrderBtn = document.getElementById("cancelEditOrderBtn");
 const saveEditProductBtn = document.getElementById("saveEditProductBtn");
 
 // ======== Popup تعديل الأوردر ========
@@ -41,31 +42,32 @@ editOrderPopup.className = "popup";
 document.body.appendChild(editOrderPopup);
 
 // ======== رابط السيرفر ========
-const SERVER_URL =
-  window.location.hostname.includes("localhost")
-    ? "http://localhost:5000"
-    : "https://oradesign.onrender.com";
+const SERVER_URL = "http://localhost:5000";
+
 
 // ======== تحميل البيانات من السيرفر ========
 async function fetchData() {
   try {
-    const [resProducts, resOrders, resTools, resLosses] = await Promise.all([
-  fetch(`${SERVER_URL}/api/products`),
-  fetch(`${SERVER_URL}/api/orders`),
-  fetch(`${SERVER_URL}/api/tools`),
-  fetch(`${SERVER_URL}/api/losses`)
-]);
+    const resProducts = await fetch(`${SERVER_URL}/api/products`);
+    const resOrders = await fetch(`${SERVER_URL}/api/test-order/`);
+    const resTools = await fetch(`${SERVER_URL}/api/tools`);
+    const resLosses = await fetch(`${SERVER_URL}/api/losses`);
 
     products = resProducts.ok ? await resProducts.json() : [];
     orders = resOrders.ok ? await resOrders.json() : [];
     tools = resTools.ok ? await resTools.json() : [];
     losses = resLosses.ok ? await resLosses.json() : [];
+
+    console.log("Products:", products.length);
+    console.log("Orders:", orders.length);
+    console.log("Tools:", tools.length);
+    console.log("Losses:", losses.length);
+
   } catch (err) {
     console.error("❌ Error fetching data:", err);
     alert("⚠️ لم يتم تحميل البيانات من السيرفر");
   }
 }
-window.addEventListener("DOMContentLoaded", fetchData);
 
 // ======== فتح وغلق الـ Popups ========
 function togglePopup(popup, show = true) {
@@ -84,7 +86,6 @@ cancelAddProductBtn && cancelAddProductBtn.addEventListener("click", () => toggl
 closeProductsPopupBtn && closeProductsPopupBtn.addEventListener("click", () => togglePopup(productsPopup, false));
 closeOrdersPopupBtn && closeOrdersPopupBtn.addEventListener("click", () => togglePopup(ordersPopup, false));
 cancelSelectionBtn && cancelSelectionBtn.addEventListener("click", () => togglePopup(selectProductsPopup, false));
-document.getElementById("cancelEditOrder") && document.getElementById("cancelEditOrder").addEventListener("click", () => togglePopup(editOrderPopup, false));
 
 // ======== إضافة مكونات المنتج (Popup إضافة) ========
 addComponentBtn && addComponentBtn.addEventListener("click", () => {
@@ -103,19 +104,18 @@ function updateNewProductTotal() {
   const el = document.getElementById("newProductTotalCostDisplay");
   if (el) el.textContent = total.toFixed(2);
 }
-
-// ======== إضافة منتج جديد ========
-saveNewProductBtn && saveNewProductBtn.addEventListener("click", async () => {
+//================اضافة منتج =================
+saveNewProductBtn?.addEventListener("click", async () => {
   const nameEl = document.getElementById("newProductName");
   const sellingPriceEl = document.getElementById("newProductSellingPrice");
-  if (!nameEl || !sellingPriceEl) return alert("⚠️ عناصر الإدخال ناقصة");
+  const imageFile = document.getElementById("newProductImage").files[0];
 
   const name = nameEl.value.trim();
   const sellingPrice = parseFloat(sellingPriceEl.value);
-  const imageFile = document.getElementById("newProductImage").files[0];
 
   if (!name || !sellingPrice) return alert("⚠️ أدخلي اسم المنتج والسعر");
 
+  // المكونات
   const components = Array.from(document.querySelectorAll(".component-item")).map(div => ({
     name: div.querySelector(".compName").value,
     price: Number(div.querySelector(".compPrice").value) || 0
@@ -124,77 +124,33 @@ saveNewProductBtn && saveNewProductBtn.addEventListener("click", async () => {
   const totalCost = components.reduce((sum, c) => sum + c.price, 0);
   const profit = sellingPrice - totalCost;
 
+  // إرسال البيانات للسيرفر مع الصورة
   const formData = new FormData();
   formData.append("name", name);
   formData.append("sellingPrice", sellingPrice);
   formData.append("totalCost", totalCost);
   formData.append("profit", profit);
   formData.append("components", JSON.stringify(components));
-  if (imageFile) formData.append("imageUrl", imageFile);
+  if (imageFile) formData.append("imageUrl", imageFile); // اسم الحقل لازم يطابق multer
 
   try {
-    const res = await fetch(`${SERVER_URL}/api/products`, { method: "POST", body: formData });
+    const res = await fetch("http://localhost:5000/api/products", {
+      method: "POST",
+      body: formData
+    });
+
     if (res.ok) {
       const data = await res.json();
-      products.push(data);
-      togglePopup(addProductPopup, false);
       alert("✅ تم تسجيل المنتج بنجاح");
+      // هنا ممكن تحدث الـ UI
     } else {
-      console.error("❌ خطأ أثناء الحفظ:", await res.text());
+      const text = await res.text();
+      console.error("❌ خطأ أثناء الحفظ:", text);
       alert("❌ حدث خطأ أثناء حفظ المنتج");
     }
   } catch (err) {
-    console.error("⚠️ خطأ في الاتصال بالسيرفر:", err);
-    alert("⚠️ لم يتم الاتصال بالسيرفر، يرجى التأكد من تشغيل السيرفر");
-  }
-});
-
-// ======== بقية الكود يبقى زي ما هو ========
-// ======== إضافة أوردر ========
-document.getElementById("orderForm") && document.getElementById("orderForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!selectedProducts.length) return alert("⚠️ اختاري منتجات أولاً");
-
-  const totalCost = parseFloat(document.getElementById('totalCost').value) || 0;
-  const sellingPrice = parseFloat(document.getElementById('sellingPrice').value) || 0;
-  const profit = parseFloat(document.getElementById('profit').value) || 0;
-
-  const order = {
-    customerName: document.getElementById("customerName").value,
-    address: document.getElementById("address").value,
-    phone: document.getElementById("phone").value,
-    deliveryDate: document.getElementById("deliveryDate").value,
-    status: document.getElementById("status").value,
-    products: selectedProducts.map(p => ({
-      name: p.product.name,
-      qty: p.qty,
-      sellingPrice: p.product.sellingPrice,
-      totalCost: p.product.totalCost ?? 0
-    })),
-    totalCost,
-    sellingPrice,
-    profit
-  };
-
-  try {
-    const res = await fetch(`${SERVER_URL}/api/orders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(order)
-    });
-    if (res.ok) {
-      const data = await res.json();
-      orders.push(data);
-      e.target.reset();
-      selectedProducts = [];
-      document.getElementById("productsList").innerHTML = "";
-      await fetchData();
-      alert("✅ تم تسجيل الأوردر بنجاح");
-    } else {
-      console.error("❌ خطأ أثناء حفظ الأوردر:", await res.text());
-    }
-  } catch (err) {
-    console.error("⚠️ خطأ في الاتصال بالسيرفر:", err);
+    console.error("⚠️ خطأ:", err);
+    alert("⚠️ حدث خطأ، تحقق من السيرفر");
   }
 });
 
@@ -450,7 +406,7 @@ function addRowClickEditEvents(orderList) {
 
         // حفظ للسيرفر
         try {
-          const res = await fetch(`${SERVER_URL}/api/orders/${orderId}`, {
+          const res = await fetch(`${SERVER_URL}/api/test-order/${orderId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(order)
@@ -485,7 +441,8 @@ showProductsBtn && showProductsBtn.addEventListener("click", async () => {
 
 showOrdersBtn && showOrdersBtn.addEventListener("click", async () => {
   try {
-    const res = await fetch(`${SERVER_URL}/api/orders`);
+    const res = await fetch(`${SERVER_URL}/api/test-order`);
+
     if (!res.ok) throw new Error("خطأ في السيرفر");
     orders = await res.json();
     loadOrdersTable();
@@ -499,8 +456,12 @@ showOrdersBtn && showOrdersBtn.addEventListener("click", async () => {
 showOrdersBtn && showOrdersBtn.addEventListener("click", fetchOrdersAndOpenLastPage);
 
 // ======== Popup اختيار المنتجات ========
-selectProductsBtn && selectProductsBtn.addEventListener('click', () => {
+selectProductsBtn && selectProductsBtn.addEventListener('click', async () => {
   if (!popupProductsContainer) return alert("عنصر popupProductsContainer غير موجود في HTML");
+
+  // لو المنتجات فاضية، جلبها من السيرفر
+  if (!products.length) await fetchData();
+
   popupProductsContainer.innerHTML = '';
 
   products.forEach((p, i) => {
@@ -526,113 +487,62 @@ selectProductsBtn && selectProductsBtn.addEventListener('click', () => {
       <img src="${p.imageUrl || 'assets/images/placeholder.png'}" alt="${p.name}">
       <strong>${p.name}</strong>
       <label>الكمية: <input type="number" class="popup-qty" value="0" min="0"></label>
-      <span>السعر: <span class="unit-price">${Number(p.sellingPrice || 0).toFixed(2)}</span> جنيه</span>
+      <span>سعر المنتج: <span class="product-total-price">${Number(p.sellingPrice || 0).toFixed(2)}</span> جنيه</span>
       ${compHtml}
     `;
 
     popupProductsContainer.appendChild(div);
 
-    // عرض/إخفاء المكونات
     const btn = div.querySelector('.customize-btn');
     if (btn) {
       btn.addEventListener('click', () => {
         const comps = div.querySelector('.components');
         comps.style.display = comps.style.display === 'none' ? 'block' : 'none';
+
         comps.querySelectorAll('.component-checkbox').forEach(chk => {
-          chk.addEventListener('change', updateTotals);
+          chk.addEventListener('change', () => {
+            const basePrice = Number(products[i].sellingPrice || 0);
+            const selectedComps = Array.from(comps.querySelectorAll('.component-checkbox:checked'))
+              .reduce((sum, c) => sum + Number(c.dataset.price || 0), 0);
+            div.querySelector('.product-total-price').textContent = (basePrice + selectedComps).toFixed(2);
+          });
         });
       });
     }
-
-    // تحديث الإجماليات عند تغيير الكمية
-    div.querySelector('.popup-qty').addEventListener('input', updateTotals);
   });
 
   togglePopup(selectProductsPopup);
 });
 
-// ======== تأكيد اختيار المنتجات مع احتساب المكونات ========
+// ======== تأكيد اختيار المنتجات ========
 confirmSelectionBtn && confirmSelectionBtn.addEventListener('click', () => {
   selectedProducts = [];
   const productsList = document.getElementById('productsList');
   productsList.innerHTML = '';
 
   popupProductsContainer.querySelectorAll('.product-card').forEach((card, i) => {
-    const qty = Number(card.querySelector('.popup-qty').value || 0);
+    const qty = Number(card.querySelector('.popup-qty').value);
     if (qty > 0) {
       const selectedComps = Array.from(card.querySelectorAll('.component-checkbox:checked')).map(chk => ({
         name: chk.dataset.name,
         price: Number(chk.dataset.price)
       }));
 
-      selectedProducts.push({
-        product: products[i],
-        qty,
-        components: selectedComps
-      });
+      // إذا المكونات الفارغة، خذ المكونات الأصلية من products[i]
+      const compsFinal = (selectedComps.length > 0) ? selectedComps : (products[i].components || []);
 
-      const unitPrice = Number(products[i].sellingPrice || 0);
-      const totalPrice = unitPrice * qty; // بدون إضافة المكونات
+      selectedProducts.push({ product: products[i], qty, components: compsFinal });
 
+      const totalPrice = (Number(products[i].sellingPrice || 0) * qty).toFixed(2);
       const div = document.createElement('div');
-      div.textContent = `${products[i].name} - الكمية: ${qty} - السعر الإجمالي: ${totalPrice.toFixed(2)} جنيه`;
+      div.textContent = `${products[i].name} - الكمية: ${qty} - السعر: ${totalPrice} جنيه`;
       productsList.appendChild(div);
     }
   });
 
-  // اظهار input الورق
-  const orderPaperInput = document.getElementById("orderPaperCost");
-  if (orderPaperInput) {
-    orderPaperInput.value = "0";
-    orderPaperInput.style.display = "inline-block";
-  }
-
   updateTotals();
   togglePopup(selectProductsPopup, false);
 });
-
-// ======== تحديث إجمالي تكلفة الورق ========
-function updatePaperCost() {
-  const count = Number(document.getElementById("paperCount")?.value || 0);
-  const price = Number(document.getElementById("paperPrice")?.value || 0);
-  const totalPaperCost = count * price;
-
-  const orderPaperInput = document.getElementById("orderPaperCost");
-  if (orderPaperInput) orderPaperInput.value = totalPaperCost.toFixed(2);
-
-  updateTotals();
-}
-
-// ======== أحداث الورق ========
-document.getElementById("paperCount")?.addEventListener("input", updatePaperCost);
-document.getElementById("paperPrice")?.addEventListener("input", updatePaperCost);
-document.getElementById("paperType")?.addEventListener("change", updatePaperCost);
-
-// ======== حساب الإجماليات مع المكونات والورق ========
-function updateTotals() {
-  let totalCost = 0;
-  let sellingPrice = 0;
-
-  selectedProducts.forEach(p => {
-    const qty = p.qty;
-    const unitPrice = Number(p.product.sellingPrice || 0);
-    sellingPrice += unitPrice * qty;
-
-    // حساب تكلفة المكونات المضافة
-    const compsCost = (p.components || []).reduce((sum, c) => sum + Number(c.price || 0), 0);
-    totalCost += compsCost * qty;
-  });
-
-  // إضافة تكلفة الورق
-  const orderPaperCost = Number(document.getElementById("orderPaperCost")?.value || 0);
-  totalCost += orderPaperCost;
-
-  const profit = sellingPrice - totalCost;
-
-  document.getElementById('totalCost').value = totalCost.toFixed(2);
-  document.getElementById('sellingPrice').value = sellingPrice.toFixed(2);
-  document.getElementById('profit').value = profit.toFixed(2);
-}
 
 
 // فلتر الشهر
@@ -720,7 +630,7 @@ closeOrdersPopupBtn && closeOrdersPopupBtn.addEventListener("click", () => toggl
 // ======== فتح آخر صفحة بعد تحميل الأوردرات (كما طلبتي سابقًا) ========
 async function fetchOrdersAndOpenLastPage() {
   try {
-    const res = await fetch(`${SERVER_URL}/api/orders`);
+    const res = await fetch(`${SERVER_URL}/api/test-order`);
     if (!res.ok) throw new Error("خطأ في تحميل الأوردرات");
     orders = await res.json();
 
@@ -800,6 +710,9 @@ document.addEventListener("input", e => {
 cancelEditProductBtn && cancelEditProductBtn.addEventListener("click", () => {
   document.getElementById("editProductPopup").style.display = "none";
 });
+cancelEditOrderBtn && cancelEditOrderBtn.addEventListener("click", () => {
+  document.getElementById("editOrderPopup").style.display = "none";
+});
 
 // حفظ التعديلات
 saveEditProductBtn && saveEditProductBtn.addEventListener("click", async () => {
@@ -876,7 +789,7 @@ let tools = [];
 // ======== جلب الأوردرز من السيرفر ========
 async function fetchOrders() {
   try {
-    const res = await fetch(`${SERVER_URL}/api/orders`);
+    const res = await fetch(`${SERVER_URL}/api/test-order`);
     orders = await res.json();
     updateProfitDisplay();
   } catch (err) {
@@ -937,7 +850,7 @@ function updateProfitDisplay() {
 // ======== بعد جلب الأوردرات من السيرفر ========
 async function fetchOrders() {
   try {
-    const res = await fetch(`${SERVER_URL}/api/orders`);
+    const res = await fetch(`${SERVER_URL}/api/test-order`);
     if (!res.ok) throw new Error("خطأ في جلب الأوردرات");
     orders = await res.json();
     updateProfitDisplay(); // ✅ تحديث مباشرة بعد التحميل
@@ -1101,55 +1014,277 @@ async function fetchLosses() {
 // ======== تحديث الإجماليات في الـ Navbar ========
 async function updateNavbarTotals() {
   try {
+    // جلب البيانات من السيرفر
     const [ordersRes, toolsRes, lossesRes] = await Promise.all([
-      fetch(`${SERVER_URL}/api/orders`),
+      fetch(`${SERVER_URL}/api/test-order`),
       fetch(`${SERVER_URL}/api/tools`),
       fetch(`${SERVER_URL}/api/losses`)
     ]);
 
-    // ✅ تأكدي إن كل Response ناجح
+    // التأكد من نجاح كل Response
     if (!ordersRes.ok || !toolsRes.ok || !lossesRes.ok) {
-      throw new Error("One of the API requests failed");
+      const textOrders = ordersRes.ok ? "" : await ordersRes.text();
+      const textTools = toolsRes.ok ? "" : await toolsRes.text();
+      const textLosses = lossesRes.ok ? "" : await lossesRes.text();
+      throw new Error(
+        `One of the API requests failed:\nOrders: ${textOrders}\nTools: ${textTools}\nLosses: ${textLosses}`
+      );
     }
 
+    // تحويل البيانات إلى JSON
     const orders = await ordersRes.json();
     const tools = await toolsRes.json();
     const losses = await lossesRes.json();
 
-    // 🧾 إجمالي الأرباح من الأوردرات
-    const ordersTotal = orders.reduce((sum, o) => sum + (o.profit || 0), 0);
+    // حساب إجمالي الأرباح من الأوردرات
+    const ordersTotal = Array.isArray(orders)
+      ? orders.reduce((sum, o) => sum + (o.profit || 0), 0)
+      : 0;
 
-    // 🧰 تكلفة الأدوات
-    const toolsTotal = tools.reduce(
-      (sum, t) => sum + ((t.cost || 0) * (t.quantity || 1)),
-      0
-    );
+    // حساب تكلفة الأدوات
+    const toolsTotal = Array.isArray(tools)
+      ? tools.reduce((sum, t) => sum + ((t.cost || 0) * (t.quantity || 1)), 0)
+      : 0;
 
-    // 💸 إجمالي الخسائر
-    const lossesTotal = losses.reduce((sum, l) => sum + (l.amount || 0), 0);
+    // حساب إجمالي الخسائر
+    const lossesTotal = Array.isArray(losses)
+      ? losses.reduce((sum, l) => sum + (l.amount || 0), 0)
+      : 0;
 
-    // 🧮 الربح النهائي
+    // حساب الربح النهائي
     const finalProfit = ordersTotal - toolsTotal - lossesTotal;
 
-    // 💡 تحديث الـ Navbar
-    document.getElementById("ordersTotal").textContent = ordersTotal.toFixed(2);
-    document.getElementById("toolsTotal").textContent = toolsTotal.toFixed(2);
-    document.getElementById("lossesTotal").textContent = lossesTotal.toFixed(2);
-    document.getElementById("finalProfit").textContent = finalProfit.toFixed(2);
+    // تحديث عناصر الـ Navbar
+const ordersTotalEl = document.getElementById("ordersTotal");
+if (ordersTotalEl) ordersTotalEl.textContent = ordersTotal.toFixed(2);
 
-    // 🧠 حفظهم في LocalStorage
+const toolsTotalEl = document.getElementById("toolsTotal");
+if (toolsTotalEl) toolsTotalEl.textContent = toolsTotal.toFixed(2);
+
+const lossesTotalEl = document.getElementById("lossesTotal");
+if (lossesTotalEl) lossesTotalEl.textContent = lossesTotal.toFixed(2);
+
+const finalProfitEl = document.getElementById("finalProfit");
+if (finalProfitEl) finalProfitEl.textContent = finalProfit.toFixed(2);
+
+    // حفظ القيم في LocalStorage
     localStorage.setItem("ordersTotal", ordersTotal);
     localStorage.setItem("toolsTotal", toolsTotal);
     localStorage.setItem("lossesTotal", lossesTotal);
     localStorage.setItem("finalProfit", finalProfit);
   } catch (err) {
-    console.error("حدث خطأ أثناء حساب الإجماليات:", err);
+    console.error("❌ حدث خطأ أثناء حساب الإجماليات:", err);
   }
 }
 
+// تشغيل التحديث عند تحميل الصفحة
 window.addEventListener("load", updateNavbarTotals);
 
+// تحديث الإجماليات بعد إضافة خسارة جديدة
 document.getElementById("addLossBtn")?.addEventListener("click", () => {
   setTimeout(updateNavbarTotals, 1000);
 });
+// الفنكشن اللي بتعرض الورق في popup
+function showPaperDetails(order) {
+  const popup = document.getElementById("paperPopup");
+  const container = document.getElementById("paperListContainer");
+  
+  // مسح المحتوى القديم
+  container.innerHTML = "";
 
+  if(order.paperDetails && order.paperDetails.length > 0){
+    order.paperDetails.forEach((paper, index) => {
+      const div = document.createElement("div");
+      div.innerHTML = `
+        <strong>${paper.paperType}</strong> - عدد: ${paper.numberOfPapers} - تكلفة: ${paper.paperCost} - الإجمالي: ${paper.totalPaperCost}
+      `;
+      container.appendChild(div);
+    });
+  } else {
+    container.innerHTML = "<p>لا توجد بيانات ورق لهذا الأوردر.</p>";
+  }
+
+  popup.style.display = "flex";
+}
+
+// إغلاق الـ popup
+document.getElementById("closePaperPopup").addEventListener("click", () => {
+  document.getElementById("paperPopup").style.display = "none";
+});
+orders.forEach(order => {
+  const tr = document.createElement("tr");
+
+  tr.innerHTML = `
+    <td>${order.customerName}</td>
+    <td>${order.totalCost}</td>
+    <td>${order.sellingPrice}</td>
+    <td>
+      <button class="showPaperBtn">Paper Info ⬇️</button>
+    </td>
+  `;
+
+  // إضافة الحدث للزرار
+  tr.querySelector(".showPaperBtn").addEventListener("click", () => {
+    showPaperDetails(order);
+  });
+
+  document.getElementById("ordersTableBody").appendChild(tr);
+});
+let paperDetails = [];
+
+// إضافة سطر جديد للورق
+document.querySelector("#paperFormContainer").addEventListener("click", (e) => {
+  if(e.target.classList.contains("addPaperRow")){
+    const container = document.getElementById("paperFormContainer");
+    const newRow = document.createElement("div");
+    newRow.className = "paperRow";
+    newRow.innerHTML = `
+      <select name="paperType">
+        <option value="كوشيه">كوشيه</option>
+        <option value="ستيكر">ستيكر</option>
+      </select>
+      <input type="number" name="numberOfPapers" placeholder="عدد الأوراق">
+      <input type="number" name="paperCost" placeholder="تكلفة الورقة">
+      <button type="button" class="removePaperRow">-</button>
+    `;
+    container.appendChild(newRow);
+
+    // زرار حذف السطر
+    newRow.querySelector(".removePaperRow").addEventListener("click", () => newRow.remove());
+  }
+});
+
+document.getElementById("orderForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if(!selectedProducts.length) return alert("⚠️ اختاري منتجات أولاً");
+
+  // 1️⃣ جلب القيم الأساسية
+  const customerName = document.getElementById("customerName").value.trim();
+  const address = document.getElementById("address").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  if(!customerName || !address || !phone) return alert("⚠️ الرجاء إدخال اسم العميل، العنوان، ورقم التليفون");
+
+  // 2️⃣ حساب الورق
+  const paperDetails = [];
+  let paperTotal = 0;
+  document.querySelectorAll("#paperFormContainer .paperRow").forEach(row => {
+    const type = row.querySelector('select[name="paperType"]').value;
+    const number = Number(row.querySelector('input[name="numberOfPapers"]').value) || 0;
+    const cost = Number(row.querySelector('input[name="paperCost"]').value) || 0;
+    if(number && cost){
+      const totalPaperCost = number * cost;
+      paperDetails.push({ paperType: type, numberOfPapers: number, paperCost: cost, totalPaperCost });
+      paperTotal += totalPaperCost;
+    }
+  });
+
+  // 3️⃣ حساب إجمالي المنتجات
+  let productsTotal = 0;
+  let sellingPrice = 0;
+  const orderProducts = selectedProducts.map(p => {
+    const totalCost = (p.components || []).reduce((sum, c) => sum + (Number(c.price) || 0), 0) * p.qty;
+    productsTotal += totalCost;
+    sellingPrice += Number(p.product.sellingPrice || 0) * p.qty;
+    return {
+      name: p.product.name || "غير محدد",
+      qty: Number(p.qty) || 0,
+      sellingPrice: Number(p.product.sellingPrice) || 0,
+      totalCost
+    };
+  });
+
+  const totalCost = productsTotal + paperTotal;
+  const profit = sellingPrice - totalCost;
+
+  // 4️⃣ تجهيز الأوردر
+  const newOrder = {
+    customerName,
+    address,
+    phone,
+    products: orderProducts,
+    paperDetails,
+    totalCost,
+    sellingPrice,
+    profit,
+    deliveryDate: document.getElementById("deliveryDate").value,
+    status: document.getElementById("status").value
+  };
+
+  // 5️⃣ إرسال للأبي
+  try {
+    const res = await fetch(`${SERVER_URL}/api/test-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newOrder)
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error(errText || "فشل إضافة الأوردر");
+    }
+    const savedOrder = await res.json();
+    orders.push(savedOrder);
+
+    // إعادة تهيئة الفورم
+    document.getElementById("orderForm").reset();
+    document.getElementById("productsList").innerHTML = "";
+    document.getElementById("paperFormContainer").innerHTML = `
+      <div class="paperRow">
+        <select name="paperType">
+          <option value="كوشيه">كوشيه</option>
+          <option value="ستيكر">ستيكر</option>
+        </select>
+        <input type="number" name="numberOfPapers" placeholder="عدد الأوراق">
+        <input type="number" name="paperCost" placeholder="تكلفة الورقة">
+        <button type="button" class="addPaperRow">+</button>
+      </div>
+    `;
+    selectedProducts = [];
+    await fetchData();
+    alert("✅ الأوردر اتسجل بنجاح");
+  } catch(err){
+    console.error(err);
+    alert("❌ حدث خطأ أثناء حفظ الأوردر: " + err.message);
+  }
+});
+function calculatePaperTotal() {
+  let totalPaper = 0;
+  document.querySelectorAll("#paperFormContainer .paperRow").forEach(row => {
+    const number = Number(row.querySelector('input[name="numberOfPapers"]').value) || 0;
+    const cost = Number(row.querySelector('input[name="paperCost"]').value) || 0;
+    totalPaper += number * cost;
+  });
+  return totalPaper;
+}
+
+function updateTotals() {
+  // 1️⃣ إجمالي المنتجات + مكوناتها
+  let totalCost = 0;
+  let sellingPrice = 0;
+
+  selectedProducts.forEach(p => {
+    const compsCost = (p.components || []).reduce((sum, c) => sum + (Number(c.price) || 0), 0);
+    totalCost += compsCost * p.qty;
+    sellingPrice += Number(p.product.sellingPrice || 0) * p.qty;
+  });
+
+  // 2️⃣ إجمالي الورق
+  const paperTotal = calculatePaperTotal();
+  totalCost += paperTotal;
+
+  // 3️⃣ حساب الربح
+  const profit = sellingPrice - totalCost;
+
+  // 4️⃣ تحديث الحقول
+  document.getElementById('totalCost').value = totalCost.toFixed(2);
+  document.getElementById('sellingPrice').value = sellingPrice.toFixed(2);
+  document.getElementById('profit').value = profit.toFixed(2);
+}
+
+// تحديث live عند أي تغيير
+document.getElementById("paperFormContainer").addEventListener("input", (e) => {
+  if(e.target.name === "numberOfPapers" || e.target.name === "paperCost") {
+    updateTotals();
+  }
+});
+
+document.getElementById("sellingPrice").addEventListener("input", updateTotals);
