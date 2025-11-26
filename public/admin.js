@@ -818,7 +818,7 @@ function renderToolsTable() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${t.name}</td>
-      <td>${t.cost.toFixed(2)}</td>
+      <td>${Number(t.cost || 0).toFixed(2)}</td>
       <td>${t.quantity}</td>
     `;
     tbody.appendChild(tr);
